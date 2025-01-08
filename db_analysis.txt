@@ -1,0 +1,63 @@
+Database Analysis for Music Band/Artist Website
+
+1. Users Table:
+   - id (Primary Key, Auto-increment)
+   - name (VARCHAR)
+   - email (VARCHAR, Unique)
+   - password (VARCHAR)
+   - role (ENUM: 'admin', 'registered_user', 'guest')
+   - created_at (TIMESTAMP)
+   - updated_at (TIMESTAMP)
+
+2. Music Tracks Table:
+   - id (Primary Key, Auto-increment)
+   - title (VARCHAR)
+   - album (VARCHAR)
+   - artist (VARCHAR)
+   - price (DECIMAL)
+   - is_free (BOOLEAN)
+   - file_path (VARCHAR)
+   - created_at (TIMESTAMP)
+   - updated_at (TIMESTAMP)
+
+3. Events Table:
+   - id (Primary Key, Auto-increment)
+   - name (VARCHAR)
+   - date (DATE)
+   - location (VARCHAR)
+   - price (DECIMAL)
+   - created_at (TIMESTAMP)
+   - updated_at (TIMESTAMP)
+
+4. Purchases Table:
+   - id (Primary Key, Auto-increment)
+   - user_id (Foreign Key referencing Users.id)
+   - item_id (Foreign Key for Music Tracks or Events)
+   - item_type (ENUM: 'music_track', 'event')
+   - quantity (INTEGER)
+   - total_price (DECIMAL)
+   - created_at (TIMESTAMP)
+
+5. Reviews Table (Optional):
+   - id (Primary Key, Auto-increment)
+   - user_id (Foreign Key referencing Users.id)
+   - item_id (Foreign Key for Music Tracks or Events)
+   - item_type (ENUM: 'music_track', 'event')
+   - rating (INTEGER)
+   - comment (TEXT)
+   - created_at (TIMESTAMP)ussd
+   - updated_at (TIMESTAMP)
+
+6. Playlists Table (Optional):
+   - id (Primary Key, Auto-increment)
+   - user_id (Foreign Key referencing Users.id)
+   - name (VARCHAR)
+   - created_at (TIMESTAMP)
+   - updated_at (TIMESTAMP)
+
+7. Playlist Tracks Table (Optional):
+   - id (Primary Key, Auto-increment)
+   - playlist_id (Foreign Key referencing Playlists.id)
+   - track_id (Foreign Key referencing Music Tracks.id)
+   - created_at (TIMESTAMP)
+   - updated_at (TIMESTAMP)
