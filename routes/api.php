@@ -14,12 +14,14 @@ Route::resource('events', EventsController::class);
 Route::post('/login', [UserController::class, 'login']);
 Route::post('/register', [UserController::class, 'register']);
 
+
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
     Route::resource('users', UserController::class);
     Route::resource('purchases', PurchasesController::class);
+    Route::get('/download/{id}', [MusicsController::class, 'download']);
  
 });
 // Route::middleware(['auth:sanctum', AdminMiddleware::class])->group(function () {

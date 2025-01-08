@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Musics;
-
+use Illuminate\Support\Facades\Log;
 class MusicsController extends Controller
 {
     /**
@@ -18,8 +18,7 @@ class MusicsController extends Controller
                 $musics = Musics::all();
             } else {
                 $musics = Musics::where('is_free', 1)->get();
-            }
-    
+            }    
             return response()->json($musics, 200);
     
         } catch (\Exception $e) {
@@ -35,7 +34,6 @@ class MusicsController extends Controller
     public function store(Request $request)
     {
         try {
-            // Validate the request data
             $validatedData = $request->validate([
                 "title" => "required|string|max:255",
                 "album" => "required|string|max:255",
@@ -45,8 +43,6 @@ class MusicsController extends Controller
                 "file_path" => "required|file|mimes:mp3,wav|max:10240", // Limit to 10MB and specific audio formats
                 "cover_image" => "nullable|image|mimes:jpeg,png,jpg|max:5120", // Image validation, max 5MB
             ]);
-    
-            // Handle file upload for music
             if ($request->hasFile('file_path')) {
                 $file = $request->file('file_path');
                 if ($file->getError() !== UPLOAD_ERR_OK) {
@@ -57,22 +53,16 @@ class MusicsController extends Controller
                 }
                 $fileName = uniqid() . '_' . $file->getClientOriginalName();
                 $filePath = $file->storeAs('public/uploads/music', $fileName);
-                \Log::info('Music file uploaded to: ' . $filePath); // Log the file path
+                \Log::info('Music file uploaded to: ' . $filePath);
                 $validatedData['file_path'] = $fileName;
             }
-    
-            // Handle file upload for cover image
             if ($request->hasFile('cover_image')) {
                 $image = $request->file('cover_image');
                 $imageName = uniqid() . '_' . $image->getClientOriginalName();
                 $image->storeAs('public/uploads/images', $imageName);
                 $validatedData['cover_image'] = $imageName;
             }
-    
-            // Create a new music record with the validated data
             $music = Musics::create($validatedData);
-    
-            // Return success message with created music details
             return response()->json([
                 'message' => 'Music created successfully',
                 'music' => $music,
@@ -91,97 +81,99 @@ class MusicsController extends Controller
         }
     }
 
-    
     public function show($id)
     {
-        try {
-            // Retrieve the music by ID
-            $music = Musics::find($id);
-    
-            // Check if the music exists
-            if (!$music) {
+        try {    
+            $music = Musics::findOrFail($id);    
+            if ($music->is_free === 0) {    
                 return response()->json([
-                    'error' => 'Music not found',
-                ], 404);
+                    "Music" => $music
+                
+                ], 200);    
+            } else {    
+                return response()->json(['message' => 'Unauthorized access.'], 403);    
+            }    
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {    
+            return response()->json(['message' => 'Music not found.'], 404);    
+        } catch (\Exception $e) {    
+            return response()->json(['message' => 'An error occurred.', 'error' => $e->getMessage()], 500);    
+        }
+    }  
+    
+    public function download($id)
+    {
+        try {
+            $music = Musics::findOrFail($id);
+            $filePath = public_path('storage/public/uploads/music/' . $music->file_path);
+            
+            if (!file_exists($filePath)) {
+                return response()->json(['error' => 'File not found', "Path" => $filePath], 404);
             }
     
-            return response()->json($music, 200);
+            return response()->download($filePath, $music->title . '.mp3', [
+                'Content-Type' => 'audio/mpeg',
+                'Content-Disposition' => 'attachment; filename="' . $music->title . '.mp3"'
+            ]);
         } catch (\Exception $e) {
-            // Handle any exceptions
-            return response()->json([
-                'error' => 'An error occurred while retrieving the music',
-                'message' => $e->getMessage(),
-            ], 500);
+            return response()->json(['error' => 'Download failed'], 500);
         }
     }
-    
-
-   
-    
-    public function edit(Musics $musics)
-    {
-        //
-    }
-
-   
-    public function update(Request $request, Musics $musics)
+    public function update(Request $request, $id)
     {
         try {
+            // Validate the request data
             $validatedData = $request->validate([
                 "title" => "sometimes|required|string|max:255",
                 "album" => "sometimes|required|string|max:255",
                 "artist" => "sometimes|required|string|max:255",
                 "price" => "sometimes|required|numeric|min:0",
                 "is_free" => "sometimes|required|boolean",
-                "file_path" => "sometimes|file|mimes:mp3,wav|max:10240", // Limit to 10MB
-                "cover_image" => "sometimes|nullable|image|mimes:jpeg,png,jpg|max:5120", // Image validation
+                "file_path" => "sometimes|file|mimes:mp3,wav|max:10240", // Limit to 10MB and specific audio formats
+                "cover_image" => "sometimes|nullable|image|mimes:jpeg,png,jpg|max:5120", // Image validation, max 5MB
             ]);
+            $music = Musics::find($id);
+
+            if (!$music){
+                return response()->json([
+                    "error" => "Invalid music id supplied"
+                ]);
+            }
     
-            // Handle file upload for music
+            // Handle file uploads
             if ($request->hasFile('file_path')) {
                 $file = $request->file('file_path');
-                $fileName = uniqid() . '_' . $file->getClientOriginalName();
-                $file->storeAs('public/uploads/music', $fileName);
-    
-                if ($musics->file_path) {
-                    $oldFilePath = storage_path('app/public/uploads/music/' . $musics->file_path);
-                    if (file_exists($oldFilePath)) {
-                        unlink($oldFilePath);
-                    }
+                if ($file->getError() !== UPLOAD_ERR_OK) {
+                    return response()->json([
+                        'error' => 'File upload error',
+                        'message' => $file->getError(),
+                    ], 422);
                 }
-    
+                $fileName = uniqid() . '_' . $file->getClientOriginalName();
+                $filePath = $file->storeAs('public/uploads/music', $fileName);
+                \Log::info('Music file uploaded to: ' . $filePath); // Log the file path
                 $validatedData['file_path'] = $fileName;
             }
     
-            // Handle file upload for cover image
             if ($request->hasFile('cover_image')) {
                 $image = $request->file('cover_image');
                 $imageName = uniqid() . '_' . $image->getClientOriginalName();
                 $image->storeAs('public/uploads/images', $imageName);
-    
-                if ($musics->cover_image) {
-                    $oldImagePath = storage_path('app/public/uploads/images/' . $musics->cover_image);
-                    if (file_exists($oldImagePath)) {
-                        unlink($oldImagePath);
-                    }
-                }
-    
                 $validatedData['cover_image'] = $imageName;
             }
-    
-            // Update the music record with the validated data
-            $musics->update($validatedData);
-    
-            return response()->json([
-                'message' => 'Music updated successfully',
-                'music' => $musics,
-            ], 200);
-    
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'error' => 'Validation failed',
-                'messages' => $e->errors(),
-            ], 422);
+            Log::info('Current music data:', $music->toArray());
+            $music->update($validatedData);
+            Log::info('Dirty attributes before save:', $music->getDirty());
+            if ($music->isDirty()) {
+                $music->save();
+                return response()->json([
+                    'message' => 'Music updated successfully',
+                    'music' => $music,
+                ], 200);
+            } else {
+                return response()->json(['message' => 'No changes were made'], 200);
+            }
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['message' => 'Music not found', 'error' => $e->getMessage()], 404);
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'An error occurred while updating the music',
@@ -189,6 +181,7 @@ class MusicsController extends Controller
             ], 500);
         }
     }
+    
     
     
 

@@ -97,7 +97,7 @@ class EventsController extends Controller
     /**
      * Update the specified Events in the database.
      */
-    public function update(Request $request, Events $Events, $id)
+    public function update(Request $request, $id)
     {
         try {
             $event = Events::find($id);
@@ -118,18 +118,18 @@ class EventsController extends Controller
                 $imageName = uniqid() . '_' . $image->getClientOriginalName();
                 $image->storeAs('public/uploads/images', $imageName);
     
-                if ($events->cover_image) {
-                    $oldImagePath = storage_path('app/public/uploads/images/' . $events->cover_image);
+                if ($event->cover_image) {
+                    $oldImagePath = storage_path('app/public/uploads/images/' . $event->cover_image);
                     if (file_exists($oldImagePath)) {
                         unlink($oldImagePath);
                     }
                 }
                 $validatedData['cover_image'] = $imageName;
             }        
-            $Events->update($validatedData);
+            $event->update($validatedData);
             return response()->json([
-                'message' => 'Events updated successfully',
-                'Events' => $Events,
+                'message' => 'event updated successfully',
+                'event' => $event,
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
@@ -147,10 +147,17 @@ class EventsController extends Controller
     /**
      * Remove the specified Events from the database.
      */
-    public function destroy(Events $Events)
+    public function destroy($id)
     {
         try {
-            $Events->delete();
+            $event = Events::find($id);
+
+            if (!$event){
+                return response()->json([
+                    "Error" => "Event not found or invalid"
+                ]);
+            }
+            $event->delete();
 
             return response()->json([
                 'message' => 'Events deleted successfully',
