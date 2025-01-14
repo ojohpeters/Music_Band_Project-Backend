@@ -13,12 +13,12 @@ class MusicsController extends Controller
     public function index()
     {
         try {
-            $user = auth('sanctum')->user();     
-            if ($user) {
+            // $user = auth('sanctum')->user();     
+            // if ($user) {
                 $musics = Musics::all();
-            } else {
-                $musics = Musics::where('is_free', 1)->get();
-            }    
+            // } else {
+                // $musics = Musics::where('is_free', 1)->get();
+            // }    
             return response()->json($musics, 200);
     
         } catch (\Exception $e) {
@@ -85,14 +85,14 @@ class MusicsController extends Controller
     {
         try {    
             $music = Musics::findOrFail($id);    
-            if ($music->is_free === 0) {    
+            // if ($music->is_free === 0) {    
                 return response()->json([
                     "Music" => $music
                 
                 ], 200);    
-            } else {    
-                return response()->json(['message' => 'Unauthorized access.'], 403);    
-            }    
+            // } else {    
+            //     return response()->json(['message' => 'Unauthorized access.'], 403);    
+            // }    
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {    
             return response()->json(['message' => 'Music not found.'], 404);    
         } catch (\Exception $e) {    
